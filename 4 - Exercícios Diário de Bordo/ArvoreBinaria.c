@@ -1,3 +1,8 @@
+// CÓDIGO FEITO POR PEDRO HENRIQUE GOMES CHAGAS
+// CC6N - ESTRUTURA DE DADOS II 
+// ATIVIDADE 1 E 2 FEITAS NO MESMO ARQUIVO
+// JUNTANDO A ÁRVORE BINÁRIA FEITA COM AS FUNÇÕES DE "preOrdem", "emOrdem" e "posOrdem" 
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -8,6 +13,13 @@ typedef struct No {
   struct No * dir; // Ponteiro para o nó filho à direita
 }
 NoArvore;
+
+// Estrutura para representar a pilha usada nas travessias iterativas
+typedef struct Pilha {
+  NoArvore * no; // Ponteiro para um nó da árvore
+  struct Pilha * prox; // Ponteiro para o próximo elemento da pilha
+}
+Pilha;
 
 // Função para criar um novo nó na árvore
 NoArvore * criarNo(int valor) {
@@ -54,7 +66,6 @@ NoArvore * removerNo(NoArvore * raiz, int valor) {
   } else if (valor > raiz -> valor) {
     raiz -> dir = removerNo(raiz -> dir, valor);
   } else {
-    // Se o nó tem um ou nenhum filho
     if (raiz -> esq == NULL) {
       NoArvore * temp = raiz -> dir;
       free(raiz);
@@ -64,8 +75,6 @@ NoArvore * removerNo(NoArvore * raiz, int valor) {
       free(raiz);
       return temp;
     }
-
-    // Nó com dois filhos: obtenha o sucessor (menor valor na subárvore direita)
     NoArvore * temp = acharMenor(raiz -> dir);
     raiz -> valor = temp -> valor;
     raiz -> dir = removerNo(raiz -> dir, temp -> valor);
@@ -73,34 +82,107 @@ NoArvore * removerNo(NoArvore * raiz, int valor) {
   return raiz;
 }
 
-// Função para percorrer a árvore em ordem (in-order traversal)
-void emOrdem(NoArvore * raiz) {
-  if (raiz != NULL) {
-    emOrdem(raiz -> esq);
-    printf("%d ", raiz -> valor);
-    emOrdem(raiz -> dir);
+// Função para buscar um nó na árvore
+NoArvore * buscarNo(NoArvore * raiz, int valor) {
+  while (raiz != NULL) {
+    if (valor == raiz -> valor) {
+      return raiz;
+    } else if (valor < raiz -> valor) {
+      raiz = raiz -> esq;
+    } else {
+      raiz = raiz -> dir;
+    }
+  }
+  return NULL; // Retorna NULL se o valor não for encontrado
+}
+
+// Função para empilhar um nó na pilha
+void empilhar(Pilha ** topo, NoArvore * no) {
+  Pilha * novo = (Pilha * ) malloc(sizeof(Pilha));
+  novo -> no = no;
+  novo -> prox = * topo;
+  * topo = novo;
+}
+
+// Função para desempilhar um nó da pilha
+NoArvore * desempilhar(Pilha ** topo) {
+  if ( * topo == NULL) {
+    return NULL;
+  }
+  Pilha * temp = * topo;
+  * topo = ( * topo) -> prox;
+  NoArvore * noDesempilhado = temp -> no;
+  free(temp);
+  return noDesempilhado;
+}
+
+// Função para percorrer a árvore em ordem (in-order) de forma iterativa
+void emOrdemIterativa(NoArvore * raiz) {
+  Pilha * pilha = NULL;
+  NoArvore * atual = raiz;
+
+  while (atual != NULL || pilha != NULL) {
+    while (atual != NULL) {
+      empilhar( & pilha, atual);
+      atual = atual -> esq;
+    }
+    atual = desempilhar( & pilha);
+    printf("%d ", atual -> valor);
+    atual = atual -> dir;
   }
 }
 
-// Função para percorrer a árvore em pré-ordem (pre-order traversal)
-void preOrdem(NoArvore * raiz) {
-  if (raiz != NULL) {
-    printf("%d ", raiz -> valor);
-    preOrdem(raiz -> esq);
-    preOrdem(raiz -> dir);
+// Função para percorrer a árvore em pré-ordem (pre-order) de forma iterativa
+void preOrdemIterativa(NoArvore * raiz) {
+  if (raiz == NULL) {
+    return;
+  }
+
+  Pilha * pilha = NULL;
+  empilhar( & pilha, raiz);
+
+  while (pilha != NULL) {
+    NoArvore * atual = desempilhar( & pilha);
+    printf("%d ", atual -> valor);
+
+    if (atual -> dir != NULL) {
+      empilhar( & pilha, atual -> dir);
+    }
+    if (atual -> esq != NULL) {
+      empilhar( & pilha, atual -> esq);
+    }
   }
 }
 
-// Função para percorrer a árvore em pós-ordem (post-order traversal)
-void posOrdem(NoArvore * raiz) {
-  if (raiz != NULL) {
-    posOrdem(raiz -> esq);
-    posOrdem(raiz -> dir);
-    printf("%d ", raiz -> valor);
+// Função para percorrer a árvore em pós-ordem (post-order) de forma iterativa
+void posOrdemIterativa(NoArvore * raiz) {
+  if (raiz == NULL) {
+    return;
+  }
+
+  Pilha * pilha1 = NULL;
+  Pilha * pilha2 = NULL;
+  empilhar( & pilha1, raiz);
+
+  while (pilha1 != NULL) {
+    NoArvore * atual = desempilhar( & pilha1);
+    empilhar( & pilha2, atual);
+
+    if (atual -> esq != NULL) {
+      empilhar( & pilha1, atual -> esq);
+    }
+    if (atual -> dir != NULL) {
+      empilhar( & pilha1, atual -> dir);
+    }
+  }
+
+  while (pilha2 != NULL) {
+    NoArvore * atual = desempilhar( & pilha2);
+    printf("%d ", atual -> valor);
   }
 }
 
-// Função para exibir a árvore (de forma simples, só para ter uma ideia)
+// Função para exibir a árvore de forma hierárquica
 void mostrarArvore(NoArvore * raiz, int espaco) {
   if (raiz == NULL) {
     return;
@@ -135,13 +217,21 @@ int main() {
   printf("\nÁrvore após remover 10:\n");
   mostrarArvore(raiz, 0);
 
+  // Buscando um valor na árvore
+  NoArvore * resultadoBusca = buscarNo(raiz, 25);
+  if (resultadoBusca != NULL) {
+    printf("\nValor 25 encontrado na árvore.\n");
+  } else {
+    printf("\nValor 25 não encontrado na árvore.\n");
+  }
+
   // Percorrendo a árvore
-  printf("\nPercurso em ordem:\n");
-  emOrdem(raiz);
-  printf("\n\nPercurso em pré-ordem:\n");
-  preOrdem(raiz);
-  printf("\n\nPercurso em pós-ordem:\n");
-  posOrdem(raiz);
+  printf("\nPercurso em ordem (iterativo):\n");
+  emOrdemIterativa(raiz);
+  printf("\n\nPercurso em pré-ordem (iterativo):\n");
+  preOrdemIterativa(raiz);
+  printf("\n\nPercurso em pós-ordem (iterativo):\n");
+  posOrdemIterativa(raiz);
   printf("\n");
 
   return 0;
